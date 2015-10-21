@@ -4,6 +4,7 @@
 
 rmarkdown_pdf
 rmarkdown_html
+rmarkdown_docx
 direct_txt
 cairo_pdf
 pres_figs

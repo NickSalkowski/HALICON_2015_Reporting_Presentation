@@ -1,4 +1,3 @@
-setwd("C:\\Users\\NSalkowski\\Documents\\R Projects\\HALICON")
 iris_split <- split(
   x = iris[-5], 
   f = iris$Species)

@@ -7,9 +7,9 @@ output: beamer_presentation
 
 ## Disclaimer
 
-> - These are my own views ... 
-> - not the the views of the Minnesota Medical Research Foundation ...
-> - and not the views of the Health Resources and Services Administration of the U.S. Department of Health and Human Services
+- These are my own views ... 
+- not the the views of the Minneapolis Medical Research Foundation ...
+- and not the views of the Health Resources and Services Administration of the U.S. Department of Health and Human Services
 
 ## There are so many options ...
 
@@ -62,7 +62,7 @@ Of course, there might not be one approach that works a lot better than the othe
 ## Direct Reports
 
 - Direct reports can usually be generated quickly, which is important if you need to produce a large number of reports, or the reports will quickly become obsolete.
-- Report formatting can be challenging!
+- Report formatting can be challenging.
 
 ## Markup Reports
 
@@ -125,12 +125,18 @@ list.files("direct_txt")
 cat(paste(readLines(file.path("direct_txt", "setosa.txt")), collapse = "\n"))
 ```
 
-## Why?
+## Justification
 
 That report wasn't very impressive, but
 
 - It illustrated the basic structure: write a loop where each iteration generates a different report 
 - Creating your own direct html reports isn't much more complicated -- just tell R to write the html that you want, and packages such as **googleVis** can make it pretty easy to include plots
+
+## Real Direct to HTML Example
+
+The SRTR uses R to directly write HTML for some tables:
+
+![PSR HTML Example](pres_figs/html_PSR.png)
 
 ## Direct PDF Reports
 
@@ -217,6 +223,7 @@ list.files("cairo_pdf")
 ## Isn't that a little crazy?
 
 -It is *more* than a little crazy, but the SRTR produces some of is public reports this way:
+
 ![PSR Example](pres_figs/PSR.png)
 
 ## Markup Reports
@@ -234,11 +241,11 @@ When you write your own code, you probably include comments -- bits of text that
 
 Writing an R + markup language report largely flips the code/comment structure.  The main body of the document is written in a markup language, but chunks of R code are included and identified with a special syntax.
 
-## Parameterized **rmarkdown**
-
 **rmarkdown** lets you pass parameters when you compile the reports, which makes it easy to write a loop
 
-[See Example]
+## Markdown Example
+
+![Rmd Ex](pres_figs/rmd_ex.png)
 
 ## The HTML Loop
 
@@ -273,5 +280,105 @@ system.time({
   }
 })
 ```
-This takes about 6 seconds -- direct to PDF took less than 0.1 seconds!
+This took over 6 seconds -- direct to PDF took about 0.1 seconds!
 
+## The docx Loop
+
+```{r eval = FALSE}
+system.time({
+  for (i in names(iris_split)) {
+    rmarkdown::render(
+      "iris_markdown.Rmd",
+      output_format = "word_document",
+      output_file = paste0(i, ".docx"),
+      output_dir = "rmarkdown_docx",
+      params = list(species = i),
+      quiet = TRUE)
+  }
+})
+```
+
+This took about  2 seconds.
+
+## Interactive Reports: **shiny**
+
+- **shiny** is an R package that facilitates creating interactive reports
+- R itself can be used to run the interactive reports
+- **Shiny Server** can be used to host the reports on the web
+- **shinyapps.io** is a hosting service for shiny apps
+
+## The UI Function
+
+```{r eval = FALSE}
+library(shiny)
+shinyUI(pageWithSidebar(
+  headerPanel('Iris Summary Plots'),
+  sidebarPanel(
+    selectInput('species', 'Species', 
+                unique(as.character(iris$Species)))),
+  mainPanel(
+    htmlOutput("spec_title"),
+    plotOutput('plot1'),
+    plotOutput('plot2')
+  )
+))
+```
+
+## The Server Function
+
+```{r eval = FALSE}
+library(shiny)
+shinyServer(function(input, output, session) {
+  selectedData <- reactive({
+    iris[which(iris$Species == input$species), -5]
+  })
+  output$spec_title <- renderPrint({
+    (h2(paste("Species:", input$species)))
+  })
+  output$plot1 <- renderPlot({
+    with(selectedData(), plot(Sepal.Length, Sepal.Width))
+  })
+  output$plot2 <- renderPlot({
+    with(selectedData(), plot(Petal.Length, Petal.Width))
+  })
+})
+```
+
+## The App
+
+![Shiny App](pres_figs/shiny.png)
+
+
+## SRTR Liver Waiting List Calculator
+
+<http://www.srtr.org/tools/livercalc.aspx>
+
+![Liver App](pres_figs/liver.png)
+
+## Data Considerations
+
+If your data set is updated frequently, and up-to-date reports are important, then the direct and interactive approaches might work best:
+
+- The direct approach produces reports quickly, reducing the lag between when the data is queried and the production of the report
+- The interactive approach can generate reports with *current* data
+
+## Your Audience
+
+- The direct and markup approaches can create static reports in a variety of formats (html, PDF, docx)
+- The interactive approach lets your audience decide whatever it wants
+
+## Your Analysis
+
+- If your analysis is computationally intensive, then the direct or markdown approaches might work better, since the reports can be generated whenever it is convenient.  Interactive reports would require your audience to wait.
+
+## Your Report Universe
+
+- If you know which reports will be needed, any of the approaches can work.
+- If you *also* know that the number of reports is very large, then the markdown approach might be too slow.
+- If you don't know which reports will be needed, and the number of possible reports is *large*, then the interactive approach might be best.
+
+## Thanks
+
+Presentation code is available, here:
+
+<https://github.com/NickSalkowski/HALICON_2015_Reporting_Presentation>
