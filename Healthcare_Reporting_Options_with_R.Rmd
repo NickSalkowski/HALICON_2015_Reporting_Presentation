@@ -1,0 +1,277 @@
+---
+title: "Healthcare Reporting Options with R"
+author: "Nick Salkowski"
+date: "Friday, October 23, 2015"
+output: beamer_presentation
+---
+
+## Disclaimer
+
+> - These are my own views ... 
+> - not the the views of the Minnesota Medical Research Foundation ...
+> - and not the views of the Health Resources and Services Administration of the U.S. Department of Health and Human Services
+
+## There are so many options ...
+
+The right approach to producing reports depends on:
+
+- Your Data
+- Your Audience
+- Your Analysis
+- Your Report Universe
+
+Of course, there might not be one approach that works a lot better than the others.
+
+## Your Data
+
+- How big is your data set?
+- How often is your data updated?
+- How important are up-to-date reports?
+
+## Your Audience
+
+- Does your audience need a static report or an interactive report?
+- Does your audience need a specific report format?
+
+## Your Analysis
+
+- Does your analysis need an unusually powerful computer?
+- Does your analysis take a long time?
+
+## Your Report Universe
+
+- Do you know which reports will be needed?
+- How many different reports might be needed?
+
+## Three Basic Report Frameworks
+
+- **Direct**
+
+    R writes the final report itself 
+
+- **Markup**
+
+    R writes the report in a markup language
+    
+    The markup language file is processed into the final report format
+
+- **Interactive**
+    
+    R does the analysis behind a user interface
+
+## Direct Reports
+
+- Direct reports can usually be generated quickly, which is important if you need to produce a large number of reports, or the reports will quickly become obsolete.
+- Report formatting can be challenging!
+
+## Markup Reports
+
+- The markup language makes it much easier to format reports
+- The process of generating the final report may be slow
+
+## Interactive Reports
+
+- Only generate the reports needed by your audience
+- Reports are as current as the data used
+
+## Example Data Set
+
+```{r}
+iris_split <- split(
+  x = iris[-5], 
+  f = iris$Species)
+class(iris_split)
+names(iris_split)
+head(iris_split$setosa, 3)
+```
+
+## Direct Text Report Function
+
+```{r}
+iris_text <- function(ll, out_dir) {
+  out_file <- file.path(out_dir, paste0(names(ll), 
+                               ".txt"))
+  write(
+    x = c(paste("Species:", names(ll), "\n"),
+          paste("Mean Sepal Length:", 
+                mean(ll[[1]][["Sepal.Length"]])),
+          paste("Mean Sepal Width:", 
+                mean(ll[[1]][["Sepal.Width"]])),
+          paste("Mean Petal Length:", 
+                mean(ll[[1]][["Petal.Length"]])),
+          paste("Mean Petal Width:", 
+                mean(ll[[1]][["Petal.Width"]]), "\n"),
+          "Page 1 of 1"),
+    file = out_file,
+    append = FALSE)
+  invisible(NULL)
+}
+```
+
+## Generating the Reports
+
+```{r}
+system.time({
+  for (i in seq_along(iris_split)) {
+    iris_text(iris_split[i], "direct_txt")
+    }
+  })
+list.files("direct_txt")
+```
+
+## Example Report 
+
+```{r echo = FALSE, comment = ""}
+cat(paste(readLines(file.path("direct_txt", "setosa.txt")), collapse = "\n"))
+```
+
+## Why?
+
+That report wasn't very impressive, but
+
+- It illustrated the basic structure: write a loop where each iteration generates a different report 
+- Creating your own direct html reports isn't much more complicated -- just tell R to write the html that you want, and packages such as **googleVis** can make it pretty easy to include plots
+
+## Direct PDF Reports
+
+Since R can write PDF files itself, you can product PDF reports without using a markup language.
+
+```{r echo = FALSE}
+iris_cairo <- function(ll, out_dir) {
+  Cairo::CairoPDF(file = file.path(out_dir, 
+                            paste0(names(ll), ".pdf")),
+           width = 8.5,
+           height = 11)
+  layout(mat = matrix(
+    c(0, 0, 0, 0, 1, 0, 0, 3, 0,
+      0, 4, 0, 0, 2, 0, 0, 0, 0),
+    ncol = 3,
+    byrow = TRUE),
+    widths = c(1, 6.5, 1),
+    heights = c(1, 1, 4, 4, 0.5, 0.5))
+  opar <- par(mar = c(0, 0, 0, 0))
+  on.exit(par(opar))
+  plot(0, 0, type = 'n', bty = 'n', ann = FALSE, 
+       xaxt = 'n', yaxt = 'n')
+  text(0, 0, paste("Species:", names(ll)), cex = 4)
+  plot(0, 0, type = 'n', bty = 'n', ann = FALSE, 
+       xaxt = 'n', yaxt = 'n')
+  text(0, 0, "Page 1 of 1", cex = 1.5)
+  par(opar)
+  with(ll[[1]], plot(Sepal.Length, Sepal.Width))
+  with(ll[[1]], plot(Petal.Length, Petal.Width))
+  dev.off()
+  invisible(NULL)
+}
+```
+
+```{r eval = FALSE}
+iris_cairo <- function(ll, out_dir) {
+  Cairo::CairoPDF(file = file.path(out_dir, 
+                            paste0(names(ll), ".pdf")),
+           width = 8.5,
+           height = 11)
+  layout(mat = matrix(
+    c(0, 0, 0, 0, 1, 0, 0, 3, 0,
+      0, 4, 0, 0, 2, 0, 0, 0, 0),
+    ncol = 3,
+    byrow = TRUE),
+    widths = c(1, 6.5, 1),
+    heights = c(1, 1, 4, 4, 0.5, 0.5))
+  opar <- par(mar = c(0, 0, 0, 0))
+  on.exit(par(opar))
+```
+
+## Function (Continued)
+```{r eval = FALSE}
+  plot(0, 0, type = 'n', bty = 'n', ann = FALSE, 
+       xaxt = 'n', yaxt = 'n')
+  text(0, 0, paste("Species:", names(ll)), cex = 4)
+  plot(0, 0, type = 'n', bty = 'n', ann = FALSE, 
+       xaxt = 'n', yaxt = 'n')
+  text(0, 0, "Page 1 of 1", cex = 1.5)
+  par(opar)
+  with(ll[[1]], plot(Sepal.Length, Sepal.Width))
+  with(ll[[1]], plot(Petal.Length, Petal.Width))
+  dev.off()
+  invisible(NULL)
+}
+```
+
+## Generating the Reports
+
+```{r}
+
+system.time({
+  for (i in seq_along(iris_split)) {
+    iris_cairo(iris_split[i], "cairo_pdf")
+    }
+  })
+list.files("cairo_pdf")
+```
+
+## Example Report
+
+![PSR Example](pres_figs/cairo_ex.png)
+
+## Isn't that a little crazy?
+
+-It is *more* than a little crazy, but the SRTR produces some of is public reports this way:
+![PSR Example](pres_figs/PSR.png)
+
+## Markup Reports
+
+**LaTeX** and **Markdown** are both useful markup languages to use with R
+
+- **LaTeX** is harder to learn, but provides excellent control to produce high-quality printable reports (generally PDFs)
+- **Markdown** is much, much easier to learn, but doesn't give you as much control
+
+The two key R packages to use are **knitr** and **rmarkdown**
+
+## Chunks
+
+When you write your own code, you probably include comments -- bits of text that are ignored when the program runs that are identified by a special syntax.
+
+Writing an R + markup language report largely flips the code/comment structure.  The main body of the document is written in a markup language, but chunks of R code are included and identified with a special syntax.
+
+## Parameterized **rmarkdown**
+
+**rmarkdown** lets you pass parameters when you compile the reports, which makes it easy to write a loop
+
+[See Example]
+
+## The HTML Loop
+
+```{r eval = FALSE}
+system.time({
+  for (i in names(iris_split)) {
+    rmarkdown::render(
+      "iris_markdown.Rmd",
+      output_format = "html_document",
+      output_file = paste0(i, ".html"),
+      output_dir = "rmarkdown_html",
+      params = list(species = i),
+      quiet = TRUE)
+  }
+})
+```
+
+This takes about 2 seconds.
+
+## The PDF Loop
+
+```{r eval = FALSE}
+system.time({
+  for (i in names(iris_split)) {
+    rmarkdown::render(
+      "iris_markdown.Rmd",
+      output_format = "pdf_document",
+      output_file = paste0(i, ".pdf"),
+      output_dir = "rmarkdown_pdf",
+      params = list(species = i),
+      quiet = TRUE)
+  }
+})
+```
+This takes about 6 seconds -- direct to PDF took less than 0.1 seconds!
+

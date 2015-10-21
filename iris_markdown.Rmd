@@ -1,0 +1,17 @@
+---
+output: 
+  html_document
+params:
+  species: setosa
+---
+
+# Species: `r params$species`
+
+```{r echo = FALSE}
+species_data <- split(
+  x = iris[-5], 
+  f = iris$Species)[[params$species]]
+with(species_data, plot(Sepal.Length, Sepal.Width))
+with(species_data, plot(Petal.Length, Petal.Width))
+```
+
